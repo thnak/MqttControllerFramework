@@ -2,12 +2,17 @@
 
     <PropertyGroup>
         <PackageId>MqttControllerFramework</PackageId>
-        <Version>1.0.0</Version>
+        <Version>1.0.0-alpha.1</Version>
         <AssemblyVersion>1.0.0</AssemblyVersion>
         <FileVersion>1.0.0</FileVersion>
         <Authors>IoT Viet Solution</Authors>
-        <Description>Source-generated MQTT controller framework for .NET — attribute-driven routing, rate limiting, and authorization over MQTTnet.</Description>
-        <RepositoryUrl>https://github.com/iot-viet-solution/MqttControllerFramework</RepositoryUrl>
+        <Description>Source-generated MQTT controller framework for .NET — attribute-driven routing, middleware pipeline, rate limiting, and authorization over MQTTnet.</Description>
+        <PackageTags>mqtt mqttnet aspnetcore controller routing middleware iot</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/thnak/MqttControllerFramework</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://github.com/thnak/MqttControllerFramework</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -17,6 +22,10 @@
         <LangVersion>latest</LangVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="MQTTnet" Version="5.1.0.1559" />
