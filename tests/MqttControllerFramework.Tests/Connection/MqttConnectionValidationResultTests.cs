@@ -1,4 +1,3 @@
-using FluentAssertions;
 using MQTTnet.Protocol;
 using MqttControllerFramework.Connection;
 

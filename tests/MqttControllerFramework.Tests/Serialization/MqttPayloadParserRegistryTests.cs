@@ -1,4 +1,3 @@
-using FluentAssertions;
 using MqttControllerFramework.Abstracts;
 using MqttControllerFramework.Attributes;
 using MqttControllerFramework.Serialization;

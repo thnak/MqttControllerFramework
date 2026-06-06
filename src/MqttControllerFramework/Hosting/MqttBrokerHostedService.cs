@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -8,7 +9,6 @@ using MQTTnet.Protocol;
 using MQTTnet.Server;
 using MqttControllerFramework.Authentication;
 using MqttControllerFramework.Authorization;
-using MqttControllerFramework.ClientActions;
 using MqttControllerFramework.Configuration;
 using MqttControllerFramework.Connection;
 using MqttControllerFramework.Events;
@@ -34,6 +34,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
     private readonly IMqttRoutingService _routing;
     private readonly IMqttClientNetworkTracker _networkTracker;
     private readonly MqttServerSettings _settings;
+    private readonly ReadOnlyMemory<byte> _systemName;
 
     public MqttBrokerHostedService(
         ILogger<MqttBrokerHostedService> logger,
@@ -53,6 +54,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
         _routing = routing;
         _networkTracker = networkTracker;
         _settings = settings.Value;
+        _systemName = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(_settings.ServerOriginPropertyValue));
         WireEvents();
     }
 
@@ -381,15 +383,15 @@ public sealed partial class MqttBrokerHostedService : IHostedService
         // Resolve all middleware registered in the per-message scope (registration order = execution order)
         var middlewares = context.Services.GetServices<IMqttMiddleware>();
 
-        // Terminal step: controller dispatch
-        MqttRequestDelegate terminal = ctx => _routing.RouteAsync(ctx);
-
         // Build chain right-to-left so first registered runs first
         var pipeline = middlewares
             .Reverse()
-            .Aggregate(terminal, static (next, mw) => ctx => mw.InvokeAsync(ctx, next));
+            .Aggregate((MqttRequestDelegate)Terminal, static (next, mw) => ctx => mw.InvokeAsync(ctx, next));
 
         return pipeline(context);
+
+        // Terminal step: controller dispatch
+        Task Terminal(MqttMessageContext ctx) => _routing.RouteAsync(ctx);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -397,7 +399,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
     private bool IsServerMessage(List<MqttUserProperty>? properties)
     {
         var prop = properties?.FirstOrDefault(p => p.Name == _settings.ServerOriginPropertyName);
-        return prop != null && prop.Value == _settings.ServerOriginPropertyValue;
+        return prop != null && prop.ValueBuffer.Span.SequenceEqual(_systemName.Span);
     }
 
     // ── Log helpers ───────────────────────────────────────────────────────

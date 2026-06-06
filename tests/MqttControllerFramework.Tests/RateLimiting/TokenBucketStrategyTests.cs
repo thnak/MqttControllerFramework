@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Time.Testing;
 using MqttControllerFramework.RateLimiting.Abstractions;
 using MqttControllerFramework.RateLimiting.Strategies;

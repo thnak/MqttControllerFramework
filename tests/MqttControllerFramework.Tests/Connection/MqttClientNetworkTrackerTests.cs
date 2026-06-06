@@ -1,5 +1,4 @@
 using System.Net;
-using FluentAssertions;
 using MqttControllerFramework.Connection;
 
 namespace MqttControllerFramework.Tests.Connection;

@@ -1,5 +1,4 @@
 using System.Collections;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using MQTTnet;
 using MQTTnet.Server;

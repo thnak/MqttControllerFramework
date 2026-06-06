@@ -1,8 +1,6 @@
 using System.Collections;
-using FluentAssertions;
 using MQTTnet;
 using MQTTnet.Packets;
-using MQTTnet.Protocol;
 using MQTTnet.Server;
 using MqttControllerFramework.Stats;
 using MqttProtocolVersion = MQTTnet.Formatter.MqttProtocolVersion;

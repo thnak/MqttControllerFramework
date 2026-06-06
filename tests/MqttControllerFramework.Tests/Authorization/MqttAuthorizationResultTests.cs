@@ -1,4 +1,3 @@
-using FluentAssertions;
 using MqttControllerFramework.Authorization;
 
 namespace MqttControllerFramework.Tests.Authorization;
