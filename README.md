@@ -7,8 +7,6 @@
 
 An ASP.NET Core–style **source-generated MQTT controller framework** for .NET, built on top of [MQTTnet 5](https://github.com/dotnet/MQTTnet). Define topic handlers with attributes; the compile-time source generator handles routing, dispatch, and DI wiring — zero reflection at runtime.
 
-> **Status: Alpha** — API may change before 1.0. Not recommended for production.
-
 ---
 
 ## Features
@@ -17,15 +15,17 @@ An ASP.NET Core–style **source-generated MQTT controller framework** for .NET,
 |---|---|
 | **Attribute-driven routing** | `[MqttController]` + `[MqttTopic("sensors/+/temperature")]` |
 | **Source-generated dispatch** | Routing, dispatcher, and registration code generated at compile time |
+| **Compile-time route validation** | MQTT001/MQTT002 diagnostics flag duplicate and ambiguous topic patterns at build time |
 | **Middleware pipeline** | ASP.NET Core–style `IMqttMiddleware` with per-message DI scope |
 | **Authentication** | `IMqttAuthenticationProvider` — username/password with lockout support |
 | **Authorization** | `IMqttAuthorizationProvider` — publish + subscribe, QoS and retain constraints |
-| **Connection validation** | `IMqttConnectionValidator` — pre-auth ClientId/IP checks, session-item seeding |
+| **Connection validation** | `IMqttConnectionValidator` — pre-auth ClientId/IP checks, session-item seeding, auth bypass |
 | **Token-bucket rate limiting** | `[TokenBucketRateLimit(capacity, refillRate, intervalMs)]` per-route |
 | **Broker stats** | `IMqttBrokerStatsService` — message counters, byte throughput, per-topic summaries |
 | **TLS hot-swap** | Reload PEM / PKCS#12 certificates at runtime without restart |
 | **Server-side publish** | `IMqttClientActionService` — push messages from broker to topics |
 | **Custom payload parsers** | `IMqttPayloadParser<T>` — binary, MessagePack, Protobuf, etc. |
+| **Pluggable retain storage** | `IRetainStorage` — swap the built-in JSON file backend for a database, Redis, or blob store |
 | **Lifecycle events** | Connected, disconnected, subscribed, unsubscribed |
 | **Multi-target** | `net8.0` and `net10.0` |
 
@@ -40,7 +40,7 @@ dotnet add package MqttControllerFramework
 Or add directly to your project file:
 
 ```xml
-<PackageReference Include="MqttControllerFramework" Version="1.0.0-alpha.1" />
+<PackageReference Include="MqttControllerFramework" Version="1.0.0" />
 ```
 
 ---
@@ -52,7 +52,7 @@ Or add directly to your project file:
 ```csharp
 // Program.cs
 builder.Services
-    .AddMqttServer(builder.Configuration)
+    .AddMqttServer(builder.Configuration.GetSection("MqttSettings"))
     .WithControllers<GeneratedMqttControllerRegistration>()
     .WithAuthentication<MyAuthProvider>();
 
@@ -118,19 +118,19 @@ public class MyAuthProvider : IMqttAuthenticationProvider
 
 ```csharp
 builder.Services
-    .AddMqttServer(configuration)           // registers the broker, reads MqttSettings section
-    .WithControllers<TRegistration>()       // source-generated registration class
-    .WithAuthentication<TProvider>()        // IMqttAuthenticationProvider (required)
-    .WithAuthorization<TProvider>()         // IMqttAuthorizationProvider (optional)
-    .WithConnectionValidator<TValidator>()  // IMqttConnectionValidator — pre-auth hook
-    .WithRequestInitializer<TInit>()        // IMqttRequestInitializer — per-publish hook
-    .WithNetworkTracker<TTracker>()         // replace built-in in-memory tracker
-    .UseMiddleware<TMiddleware>()           // IMqttMiddleware (ordered, chainable)
-    .WithRateLimiting()                     // enable token-bucket rate limiting
-    .OnClientConnected<THandler>()          // IMqttClientConnectedEvent
-    .OnClientDisconnected<THandler>()       // IMqttClientDisconnectedEvent
-    .OnClientSubscribedTopic<THandler>()    // IMqttClientSubscribedTopicEvent
-    .OnClientUnsubscribedTopic<THandler>(); // IMqttClientUnsubscribedTopicEvent
+    .AddMqttServer(configuration)            // registers the broker, reads MqttSettings section
+    .WithControllers<TRegistration>()        // source-generated registration class
+    .WithAuthentication<TProvider>()         // IMqttAuthenticationProvider (required)
+    .WithAuthorization<TProvider>()          // IMqttAuthorizationProvider (optional)
+    .WithConnectionValidator<TValidator>()   // IMqttConnectionValidator — pre-auth hook
+    .WithNetworkTracker<TTracker>()          // replace built-in in-memory tracker
+    .WithRetainStorage<TStorage>()           // IRetainStorage — custom retain message backend
+    .UseMiddleware<TMiddleware>()            // IMqttMiddleware (ordered, chainable)
+    .WithRateLimiting()                      // enable token-bucket rate limiting
+    .OnClientConnected<THandler>()           // IMqttClientConnectedEvent
+    .OnClientDisconnected<THandler>()        // IMqttClientDisconnectedEvent
+    .OnClientSubscribedTopic<THandler>()     // IMqttClientSubscribedTopicEvent
+    .OnClientUnsubscribedTopic<THandler>();  // IMqttClientUnsubscribedTopicEvent
 ```
 
 ---
@@ -232,6 +232,7 @@ PEM + separate key file:
 | Connection validation | [docs/wiki/Connection-Validation.md](docs/wiki/Connection-Validation.md) |
 | Rate limiting | [docs/wiki/Rate-Limiting.md](docs/wiki/Rate-Limiting.md) |
 | TLS & certificates | [docs/wiki/TLS-and-Security.md](docs/wiki/TLS-and-Security.md) |
+| Retained messages | [docs/wiki/Retained-Messages.md](docs/wiki/Retained-Messages.md) |
 | Lifecycle events | [docs/wiki/Events.md](docs/wiki/Events.md) |
 | Server-side publish | [docs/wiki/Server-Actions.md](docs/wiki/Server-Actions.md) |
 | Broker statistics | [docs/wiki/Broker-Stats.md](docs/wiki/Broker-Stats.md) |

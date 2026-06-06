@@ -30,9 +30,19 @@ public interface IMqttConnectionValidator
 | Factory | Meaning |
 |---|---|
 | `MqttConnectionValidationResult.Accept()` | Allow the connection to proceed |
+| `MqttConnectionValidationResult.AcceptAndBypassAuth()` | Allow the connection **and skip** the `IMqttAuthenticationProvider` step |
 | `MqttConnectionValidationResult.Reject(reason, code?)` | Refuse immediately |
 
 `reason` is logged server-side; `code` is the `MqttConnectReasonCode` sent to the client (default: `NotAuthorized`).
+
+### Result properties
+
+| Property | Type | Description |
+|---|---|---|
+| `IsValid` | `bool` | `true` when the connection is accepted |
+| `RejectReason` | `string?` | Logged server-side on rejection |
+| `RejectReasonCode` | `MqttConnectReasonCode` | Sent to the client on rejection (default: `NotAuthorized`) |
+| `BypassAuthentication` | `bool` | `true` when the authentication provider step is skipped |
 
 ---
 
@@ -121,6 +131,29 @@ public class TenantMiddleware(ITenantContext ctx) : IMqttMiddleware
 
 ---
 
+## Example: bypass authentication for pre-verified clients
+
+Use `AcceptAndBypassAuth()` when the validator has already verified the client (e.g. by ClientId lookup or mutual TLS), making a separate username/password check redundant:
+
+```csharp
+public class DeviceRegistryValidator(IDeviceRegistry registry) : IMqttConnectionValidator
+{
+    public async ValueTask<MqttConnectionValidationResult> ValidateAsync(
+        ValidatingConnectionEventArgs ctx, CancellationToken ct)
+    {
+        if (!await registry.IsRegisteredAsync(ctx.ClientId, ct))
+            return MqttConnectionValidationResult.Reject("Unknown device");
+
+        ctx.SessionItems["deviceId"] = ctx.ClientId;
+
+        // Auth provider is skipped — device identity is confirmed by registry lookup
+        return MqttConnectionValidationResult.AcceptAndBypassAuth();
+    }
+}
+```
+
+---
+
 ## Registration
 
 ```csharp
@@ -136,5 +169,6 @@ builder.Services
 ## Notes
 
 - The validator runs **before** authentication. You can reject the connection before any credentials are checked.
+- `AcceptAndBypassAuth()` skips `IMqttAuthenticationProvider` entirely — use only when the validator provides equivalent identity assurance.
 - The validator is registered as **scoped**.
 - `SessionItems` is an `IDictionary` (non-generic) backed by MQTTnet. Cast values to the expected type when reading.

@@ -143,6 +143,38 @@ public class TelemetryController(IDataRepository repo, ILogger<TelemetryControll
 
 ---
 
+## Compile-Time Route Diagnostics
+
+The source generator validates all topic templates at build time and reports conflicts as Roslyn diagnostics:
+
+| ID | Severity | Condition |
+|---|---|---|
+| `MQTT001` | **Error** | Two handler methods share the exact same full topic template |
+| `MQTT002` | **Warning** | Two topic patterns overlap — a concrete topic can match both |
+
+### MQTT001 — duplicate route
+
+```
+error MQTT001: Topic 'devices/status' is already handled by 'DeviceController.OnStatus'.
+               Duplicate handler: 'AdminController.OnStatus'.
+```
+
+Occurs when two methods (in the same or different controllers) produce the same final template after prefix expansion.
+
+### MQTT002 — ambiguous overlap
+
+```
+warning MQTT002: Topic pattern 'devices/sensor/data' in 'DeviceController.OnSensorData'
+                 overlaps with 'devices/+/data' in 'TelemetryController.OnData':
+                 both match the same messages.
+```
+
+Occurs when one pattern (e.g. `devices/sensor/data`) is a subset of another wildcard pattern (e.g. `devices/+/data`), or when a `#` wildcard subsumes a more specific pattern. Both handlers would match the same incoming message — the first registered route wins at runtime.
+
+Resolve by making patterns non-overlapping, or by moving the shared logic into a single handler.
+
+---
+
 ## Generated Code
 
 At build time the generator emits three files into `<YourAssembly>.Mqtt.Generated`:
