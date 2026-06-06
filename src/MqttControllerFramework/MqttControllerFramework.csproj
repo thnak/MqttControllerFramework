@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <PackageId>MqttControllerFramework</PackageId>
-        <Version>1.0.0-alpha.1</Version>
+        <Version>1.0.0-alpha.4</Version>
         <AssemblyVersion>1.0.0</AssemblyVersion>
         <FileVersion>1.0.0</FileVersion>
         <Authors>IoT Viet Solution</Authors>
@@ -25,6 +25,11 @@
 
     <ItemGroup>
         <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+        <!-- Pack the source generator DLL into the NuGet analyzers folder -->
+        <None Include="..\MqttControllerFramework.SourceGenerators\bin\$(Configuration)\netstandard2.0\MqttControllerFramework.SourceGenerators.dll"
+              Pack="true"
+              PackagePath="analyzers/dotnet/cs"
+              Visible="false" />
     </ItemGroup>
 
     <ItemGroup>

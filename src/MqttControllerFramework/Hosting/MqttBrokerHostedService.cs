@@ -144,6 +144,15 @@ public sealed partial class MqttBrokerHostedService : IHostedService
                 ctx.ReasonCode = result.RejectReasonCode;
                 return;
             }
+
+            if (result.BypassAuthentication)
+            {
+                // Validator has already verified the client (e.g. by ClientId), skip auth.
+                _networkTracker.TrackClientNetworkActivity(ctx.ClientId, ctx.RemoteEndPoint);
+                await _stats.MqttServerOnValidatingConnectionAsync(ctx);
+                ctx.ReasonCode = MqttConnectReasonCode.Success;
+                return;
+            }
         }
 
         if (string.IsNullOrEmpty(ctx.UserName))
