@@ -4,7 +4,6 @@ using MqttControllerFramework.Authorization;
 using MqttControllerFramework.ClientActions;
 using MqttControllerFramework.Connection;
 using MqttControllerFramework.Events;
-using MqttControllerFramework.Middleware;
 using MqttControllerFramework.Pipeline;
 using MqttControllerFramework.RateLimiting;
 using MqttControllerFramework.RetainedMessages;
@@ -117,19 +116,6 @@ public sealed class MqttServerBuilder(IServiceCollection services)
         where TValidator : class, IMqttConnectionValidator
     {
         Services.AddScoped<IMqttConnectionValidator, TValidator>();
-        return this;
-    }
-
-    // ── Per-request initializer ────────────────────────────────────────────
-
-    /// <summary>
-    ///     Registers a scoped <typeparamref name="TInitializer"/> as <see cref="IMqttRequestInitializer"/>
-    ///     (called before each publish dispatch; useful for tenant resolution, logging context, etc.).
-    /// </summary>
-    public MqttServerBuilder WithRequestInitializer<TInitializer>()
-        where TInitializer : class, IMqttRequestInitializer
-    {
-        Services.AddScoped<IMqttRequestInitializer, TInitializer>();
         return this;
     }
 
