@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using MQTTnet;
@@ -15,8 +16,9 @@ public sealed class MqttClientActionService(
     : IMqttClientActionService
 {
     private readonly string _originName = settings.Value.ServerOriginPropertyName;
-    private readonly string _originValue = settings.Value.ServerOriginPropertyValue;
+    private readonly ReadOnlyMemory<byte> _originValue = Encoding.UTF8.GetBytes(settings.Value.ServerOriginPropertyValue);
 
+    ///<inheritdoc/>
     public Task SendMessageAsync(string topic, ReadOnlySequence<byte> message, CancellationToken cancellationToken = default)
     {
         var mqttMessage = new MqttApplicationMessageBuilder()
@@ -28,6 +30,7 @@ public sealed class MqttClientActionService(
         return mqttServer.InjectApplicationMessage(new InjectedMqttApplicationMessage(mqttMessage), cancellationToken);
     }
 
+    ///<inheritdoc/>
     public async Task<TResult?> SendMessageAsync<TResult>(string topic, ReadOnlySequence<byte> message, CancellationToken cancellationToken = default)
     {
         var responseTopic = $"response/{Guid.NewGuid()}";
@@ -69,6 +72,7 @@ public sealed class MqttClientActionService(
         }
     }
 
+    ///<inheritdoc/>
     public async Task<TResult?> GetDataFromTopicAsync<TResult>(string topic, CancellationToken cancellationToken = default)
     {
         var tcs = new TaskCompletionSource<TResult?>(TaskCreationOptions.RunContinuationsAsynchronously);

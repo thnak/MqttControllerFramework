@@ -15,6 +15,7 @@ using MqttControllerFramework.Events;
 using MqttControllerFramework.Pipeline;
 using MqttControllerFramework.RateLimiting;
 using MqttControllerFramework.Routing;
+using MqttControllerFramework.Serialization;
 using MqttControllerFramework.Stats;
 
 namespace MqttControllerFramework.Hosting;
@@ -318,7 +319,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
         var path = _settings.RetainedMessagesFilePath;
         if (!File.Exists(path)) return;
         await using var fs = File.OpenRead(path);
-        var messages = await JsonSerializer.DeserializeAsync<List<MQTTnet.MqttApplicationMessage>>(fs);
+        var messages = await JsonSerializer.DeserializeAsync(fs, FrameworkJsonContext.Default.ListMqttApplicationMessage);
         if (messages != null) args.LoadedRetainedMessages = messages;
     }
 
@@ -326,7 +327,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
     {
         var path = _settings.RetainedMessagesFilePath;
         await using var fs = File.Create(path);
-        await JsonSerializer.SerializeAsync(fs, args.StoredRetainedMessages);
+        await JsonSerializer.SerializeAsync(fs, args.StoredRetainedMessages, FrameworkJsonContext.Default.ListMqttApplicationMessage);
     }
 
     private Task OnRetainedMessagesClearedAsync(EventArgs _)
