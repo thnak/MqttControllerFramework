@@ -5,6 +5,8 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <!-- RS2008: release tracking targets DiagnosticAnalyzer, not IIncrementalGenerator -->
+        <NoWarn>$(NoWarn);RS2008</NoWarn>
         <IsRoslynComponent>true</IsRoslynComponent>
         <PublishAot>false</PublishAot>
         <EnableAotAnalyzer>false</EnableAotAnalyzer>
@@ -15,6 +17,11 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" PrivateAssets="all" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AdditionalFiles Include="AnalyzerReleaseTracking.Shipped.md" />
+        <AdditionalFiles Include="AnalyzerReleaseTracking.Unshipped.md" />
     </ItemGroup>
 
 </Project>

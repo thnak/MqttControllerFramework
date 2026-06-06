@@ -143,7 +143,8 @@ public class MqttControllerGenerator : IIncrementalGenerator
             ReturnsValueTask = returnsValueTask,
             ResponseType = responseType,
             RateLimitAttributes = rateLimits!,
-            AuthInfo = GetAuthInfo(method)
+            AuthInfo = GetAuthInfo(method),
+            Location = method.Locations.FirstOrDefault()
         };
     }
 
@@ -238,6 +239,8 @@ public class MqttControllerGenerator : IIncrementalGenerator
 
         if (controllers.Length == 0) return;
 
+        ReportConflicts(ctx, controllers);
+
         ctx.AddSource("MqttControllerRegistration.g.cs",
             SourceText.From(GenerateRegistration(compilation, controllers), Encoding.UTF8));
 
@@ -267,11 +270,13 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine($"namespace {generatedNs}");
         sb.AppendLine("{");
+        sb.AppendLine("    /// <summary>Source-generated <see cref=\"IMqttControllerRegistration\"/> that registers all discovered MQTT controllers and their routes.</summary>");
         sb.AppendLine("    [global::System.CodeDom.Compiler.GeneratedCodeAttribute(\"MqttControllerFramework.SourceGenerators\", \"1.0.0\")]");
         sb.AppendLine("    public sealed class GeneratedMqttControllerRegistration : IMqttControllerRegistration");
         sb.AppendLine("    {");
 
         // GetControllerTypes
+        sb.AppendLine("        /// <summary>Returns the compile-time list of all discovered MQTT controller types.</summary>");
         sb.AppendLine("        public IReadOnlyList<Type> GetControllerTypes() => new Type[]");
         sb.AppendLine("        {");
         foreach (var c in controllers)
@@ -280,6 +285,7 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine();
 
         // GetRoutes
+        sb.AppendLine("        /// <summary>Returns the compile-time list of all MQTT routes with their topic templates and dispatcher bindings.</summary>");
         sb.AppendLine("        public IReadOnlyList<MqttRoute> GetRoutes()");
         sb.AppendLine("        {");
         sb.AppendLine("            var routes = new List<MqttRoute>();");
@@ -333,6 +339,7 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine();
 
         // RegisterDispatchers — also registers routing service as IMqttRoutingService
+        sb.AppendLine("        /// <summary>Registers all generated dispatcher scoped services and the <see cref=\"IMqttRoutingService\"/> singleton.</summary>");
         sb.AppendLine("        public void RegisterDispatchers(Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         sb.AppendLine("        {");
         sb.AppendLine($"            services.AddSingleton<MqttControllerFramework.Routing.IMqttRoutingService, {generatedNs}.GeneratedMqttRoutingService>();");
@@ -715,6 +722,73 @@ public class MqttControllerGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
+    // ── Diagnostics ───────────────────────────────────────────────────────────
+
+    private static readonly DiagnosticDescriptor DiagDuplicateRoute = new(
+        id: "MQTT001",
+        title: "Duplicate MQTT route",
+        messageFormat: "Topic '{0}' is already handled by '{1}'. Duplicate handler: '{2}'.",
+        category: "MqttRouting",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Two MQTT handler methods share the same topic template. Only the first will be reached.");
+
+    private static readonly DiagnosticDescriptor DiagAmbiguousRoute = new(
+        id: "MQTT002",
+        title: "Ambiguous MQTT routes",
+        messageFormat: "Topic pattern '{0}' in '{1}' overlaps with '{2}' in '{3}': both match the same messages",
+        category: "MqttRouting",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Two MQTT topic patterns overlap. Messages matching both will be dispatched to whichever route is registered first.");
+
+    private static void ReportConflicts(
+        SourceProductionContext ctx,
+        ImmutableArray<MqttControllerInfo> controllers)
+    {
+        var routes = controllers
+            .SelectMany(c => c.Methods.Select(m => (
+                Template: FinalTemplate(c.Prefix, m.TopicTemplate),
+                Label: $"{c.ClassName}.{m.MethodName}",
+                m.Location)))
+            .ToList();
+
+        for (int i = 0; i < routes.Count; i++)
+        {
+            for (int j = i + 1; j < routes.Count; j++)
+            {
+                var a = routes[i];
+                var b = routes[j];
+                if (a.Template == b.Template)
+                {
+                    ctx.ReportDiagnostic(Diagnostic.Create(
+                        DiagDuplicateRoute, b.Location,
+                        a.Template, a.Label, b.Label));
+                }
+                else if (TopicsConflict(a.Template, b.Template))
+                {
+                    ctx.ReportDiagnostic(Diagnostic.Create(
+                        DiagAmbiguousRoute, b.Location,
+                        a.Template, a.Label, b.Template, b.Label));
+                }
+            }
+        }
+    }
+
+    private static bool TopicsConflict(string patA, string patB)
+        => SegmentsConflict(patA.Split('/'), 0, patB.Split('/'), 0);
+
+    private static bool SegmentsConflict(string[] a, int ai, string[] b, int bi)
+    {
+        if (ai == a.Length && bi == b.Length) return true;
+        if (ai < a.Length && a[ai] == "#") return true;
+        if (bi < b.Length && b[bi] == "#") return true;
+        if (ai == a.Length || bi == b.Length) return false;
+        if (a[ai] == "+" || b[bi] == "+" || a[ai] == b[bi])
+            return SegmentsConflict(a, ai + 1, b, bi + 1);
+        return false;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static string FinalTemplate(string prefix, string template)
@@ -752,6 +826,7 @@ public class MqttControllerGenerator : IIncrementalGenerator
         public string? ResponseType { get; set; }
         public List<RateLimitInfo> RateLimitAttributes { get; set; } = new();
         public AuthInfo AuthInfo { get; set; } = new();
+        public Location? Location { get; set; }
     }
 
     private class MqttTopicParamInfo
