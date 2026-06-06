@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MqttControllerFramework.SourceGenerators/MqttControllerFramework.SourceGenerators.csproj" />
+    <Project Path="src/MqttControllerFramework/MqttControllerFramework.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MqttControllerFramework.Tests/MqttControllerFramework.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <PackageId>MqttControllerFramework</PackageId>
+        <Version>1.0.0</Version>
+        <AssemblyVersion>1.0.0</AssemblyVersion>
+        <FileVersion>1.0.0</FileVersion>
+        <Authors>IoT Viet Solution</Authors>
+        <Description>Source-generated MQTT controller framework for .NET — attribute-driven routing, rate limiting, and authorization over MQTTnet.</Description>
+        <RepositoryUrl>https://github.com/iot-viet-solution/MqttControllerFramework</RepositoryUrl>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MQTTnet" Version="5.1.0.1559" />
+        <PackageReference Include="MQTTnet.AspNetCore" Version="5.1.0.1559" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\MqttControllerFramework.SourceGenerators\MqttControllerFramework.SourceGenerators.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+</Project>
