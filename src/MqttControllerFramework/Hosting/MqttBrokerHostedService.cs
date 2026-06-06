@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -14,8 +13,8 @@ using MqttControllerFramework.Connection;
 using MqttControllerFramework.Events;
 using MqttControllerFramework.Pipeline;
 using MqttControllerFramework.RateLimiting;
+using MqttControllerFramework.RetainedMessages;
 using MqttControllerFramework.Routing;
-using MqttControllerFramework.Serialization;
 using MqttControllerFramework.Stats;
 
 namespace MqttControllerFramework.Hosting;
@@ -34,6 +33,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
     private readonly IMqttRateLimitService _rateLimit;
     private readonly IMqttRoutingService _routing;
     private readonly IMqttClientNetworkTracker _networkTracker;
+    private readonly IRetainStorage _retainStorage;
     private readonly MqttServerSettings _settings;
     private readonly ReadOnlyMemory<byte> _systemName;
 
@@ -47,6 +47,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
     /// <param name="rateLimit"></param>
     /// <param name="routing"></param>
     /// <param name="networkTracker"></param>
+    /// <param name="retainStorage"></param>
     /// <param name="settings"></param>
     public MqttBrokerHostedService(
         ILogger<MqttBrokerHostedService> logger,
@@ -56,6 +57,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
         IMqttRateLimitService rateLimit,
         IMqttRoutingService routing,
         IMqttClientNetworkTracker networkTracker,
+        IRetainStorage retainStorage,
         IOptions<MqttServerSettings> settings)
     {
         _logger = logger;
@@ -65,6 +67,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
         _rateLimit = rateLimit;
         _routing = routing;
         _networkTracker = networkTracker;
+        _retainStorage = retainStorage;
         _settings = settings.Value;
         _systemName = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(_settings.ServerOriginPropertyValue));
         WireEvents();
@@ -325,26 +328,15 @@ public sealed partial class MqttBrokerHostedService : IHostedService
 
     private async Task OnLoadingRetainedMessageAsync(LoadingRetainedMessagesEventArgs args)
     {
-        var path = _settings.RetainedMessagesFilePath;
-        if (!File.Exists(path)) return;
-        await using var fs = File.OpenRead(path);
-        var messages = await JsonSerializer.DeserializeAsync(fs, FrameworkJsonContext.Default.ListMqttApplicationMessage);
-        if (messages != null) args.LoadedRetainedMessages = messages;
+        var messages = await _retainStorage.LoadAsync(_cts.Token);
+        if (messages.Count > 0) args.LoadedRetainedMessages = messages.ToList();
     }
 
-    private async Task OnRetainedMessageChangedAsync(RetainedMessageChangedEventArgs args)
-    {
-        var path = _settings.RetainedMessagesFilePath;
-        await using var fs = File.Create(path);
-        await JsonSerializer.SerializeAsync(fs, args.StoredRetainedMessages, FrameworkJsonContext.Default.ListMqttApplicationMessage);
-    }
+    private Task OnRetainedMessageChangedAsync(RetainedMessageChangedEventArgs args) =>
+        _retainStorage.SaveAsync(args.StoredRetainedMessages, _cts.Token);
 
-    private Task OnRetainedMessagesClearedAsync(EventArgs _)
-    {
-        var path = _settings.RetainedMessagesFilePath;
-        if (File.Exists(path)) File.Delete(path);
-        return Task.CompletedTask;
-    }
+    private Task OnRetainedMessagesClearedAsync(EventArgs _) =>
+        _retainStorage.ClearAsync(_cts.Token);
 
     // ── Stats counters ────────────────────────────────────────────────────
 

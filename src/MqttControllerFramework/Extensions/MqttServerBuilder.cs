@@ -7,6 +7,7 @@ using MqttControllerFramework.Events;
 using MqttControllerFramework.Middleware;
 using MqttControllerFramework.Pipeline;
 using MqttControllerFramework.RateLimiting;
+using MqttControllerFramework.RetainedMessages;
 
 namespace MqttControllerFramework.Extensions;
 
@@ -142,6 +143,19 @@ public sealed class MqttServerBuilder(IServiceCollection services)
         where TTracker : class, IMqttClientNetworkTracker
     {
         Services.AddSingleton<IMqttClientNetworkTracker, TTracker>();
+        return this;
+    }
+
+    // ── Retained message storage ───────────────────────────────────────────
+
+    /// <summary>
+    ///     Replaces the built-in file-based retain storage with a custom
+    ///     <typeparamref name="TStorage"/> implementation (e.g. database, Redis, blob).
+    /// </summary>
+    public MqttServerBuilder WithRetainStorage<TStorage>()
+        where TStorage : class, IRetainStorage
+    {
+        Services.AddSingleton<IRetainStorage, TStorage>();
         return this;
     }
 

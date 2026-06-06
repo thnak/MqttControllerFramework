@@ -359,13 +359,16 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Buffers;");
+        sb.AppendLine("using System.Text;");
         sb.AppendLine("using System.Text.Json;");
         sb.AppendLine("using System.Threading;");
         sb.AppendLine("using System.Threading.Tasks;");
         sb.AppendLine("using Microsoft.Extensions.Logging;");
+        sb.AppendLine("using Microsoft.Extensions.Options;");
         sb.AppendLine("using MQTTnet;");
         sb.AppendLine("using MQTTnet.Server;");
         sb.AppendLine("using MqttControllerFramework.Abstracts;");
+        sb.AppendLine("using MqttControllerFramework.Configuration;");
         sb.AppendLine("using MqttControllerFramework.Serialization;");
         sb.AppendLine();
         sb.AppendLine($"namespace {ns}");
@@ -390,6 +393,8 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine("        private readonly IMqttPayloadParserRegistry _parserRegistry;");
         sb.AppendLine("        private readonly MQTTnet.Server.MqttServer _mqttServer;");
         sb.AppendLine($"        private readonly ILogger<{controller.ClassName}Dispatcher> _logger;");
+        sb.AppendLine("        private readonly string _originName;");
+        sb.AppendLine("        private readonly ReadOnlyMemory<byte> _originValue;");
         sb.AppendLine();
         sb.AppendLine($"        public {controller.ClassName}Dispatcher(");
         sb.AppendLine($"            {controller.FullyQualifiedName} controller,");
@@ -397,6 +402,7 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine("            IMqttJsonTypeInfoCache typeInfoCache,");
         sb.AppendLine("            IMqttPayloadParserRegistry parserRegistry,");
         sb.AppendLine("            MQTTnet.Server.MqttServer mqttServer,");
+        sb.AppendLine("            IOptions<MqttServerSettings> settings,");
         sb.AppendLine($"            ILogger<{controller.ClassName}Dispatcher> logger)");
         sb.AppendLine("        {");
         sb.AppendLine("            _controller = controller;");
@@ -405,6 +411,8 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine("            _parserRegistry = parserRegistry;");
         sb.AppendLine("            _mqttServer = mqttServer;");
         sb.AppendLine("            _logger = logger;");
+        sb.AppendLine("            _originName = settings.Value.ServerOriginPropertyName;");
+        sb.AppendLine("            _originValue = Encoding.UTF8.GetBytes(settings.Value.ServerOriginPropertyValue);");
 
         // Register custom parsers
         var seen = new HashSet<string>();
@@ -514,7 +522,7 @@ public class MqttControllerGenerator : IIncrementalGenerator
                 sb.AppendLine("                        .WithTopic(responseTopic)");
                 sb.AppendLine("                        .WithPayload(responseJson)");
                 sb.AppendLine("                        .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtMostOnce)");
-                sb.AppendLine("                        .WithUserProperty(\"Origin\", \"Server\")");
+                sb.AppendLine("                        .WithUserProperty(_originName, _originValue)");
                 sb.AppendLine("                        .Build();");
                 sb.AppendLine("                    await _mqttServer.InjectApplicationMessage(");
                 sb.AppendLine("                        new MQTTnet.Server.InjectedMqttApplicationMessage(msg) { SenderClientId = \"MqttServer\" },");

@@ -11,6 +11,7 @@ using MqttControllerFramework.Configuration;
 using MqttControllerFramework.Connection;
 using MqttControllerFramework.Hosting;
 using MqttControllerFramework.Logging;
+using MqttControllerFramework.RetainedMessages;
 using MqttControllerFramework.Security;
 using MqttControllerFramework.Stats;
 
@@ -99,6 +100,7 @@ public static class MqttServerServiceCollectionExtensions
         services.TryAddSingleton<IMqttBrokerStatsService, MqttBrokerStatsService>();
         services.TryAddSingleton<IMqttClientNetworkTracker, MqttClientNetworkTracker>();
         services.TryAddSingleton<IMqttClientActionService, MqttClientActionService>();
+        services.TryAddSingleton<IRetainStorage, FileRetainStorage>();
 
         // Hosted service that wires all broker events
         services.AddHostedService<MqttBrokerHostedService>();
