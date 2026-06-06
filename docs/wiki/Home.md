@@ -17,6 +17,7 @@ Welcome to the documentation for **MqttControllerFramework**, a source-generated
 | [Events](Events.md) | Client connected / disconnected / subscribed / unsubscribed |
 | [Server Actions](Server-Actions.md) | Publishing messages from the broker to topics |
 | [Broker Statistics](Broker-Stats.md) | Message counters, byte throughput, per-topic summaries |
+| [Performance](Performance.md) | Route matching internals, zero-reflection dispatch, JSON, scoped DI, tuning tips |
 | [Configuration Reference](Configuration-Reference.md) | All `MqttSettings` options |
 
 ## At a Glance

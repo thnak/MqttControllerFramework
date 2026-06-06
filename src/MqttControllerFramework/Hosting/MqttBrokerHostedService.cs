@@ -37,18 +37,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
     private readonly MqttServerSettings _settings;
     private readonly ReadOnlyMemory<byte> _systemName;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="logger"></param>
-    /// <param name="scopeFactory"></param>
-    /// <param name="broker"></param>
-    /// <param name="stats"></param>
-    /// <param name="rateLimit"></param>
-    /// <param name="routing"></param>
-    /// <param name="networkTracker"></param>
-    /// <param name="retainStorage"></param>
-    /// <param name="settings"></param>
+    /// <summary>Initializes the hosted service and wires all MQTTnet broker events.</summary>
     public MqttBrokerHostedService(
         ILogger<MqttBrokerHostedService> logger,
         IServiceScopeFactory scopeFactory,

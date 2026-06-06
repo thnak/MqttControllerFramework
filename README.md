@@ -236,6 +236,7 @@ PEM + separate key file:
 | Lifecycle events | [docs/wiki/Events.md](docs/wiki/Events.md) |
 | Server-side publish | [docs/wiki/Server-Actions.md](docs/wiki/Server-Actions.md) |
 | Broker statistics | [docs/wiki/Broker-Stats.md](docs/wiki/Broker-Stats.md) |
+| Performance | [docs/wiki/Performance.md](docs/wiki/Performance.md) |
 | Configuration reference | [docs/wiki/Configuration-Reference.md](docs/wiki/Configuration-Reference.md) |
 
 ---
