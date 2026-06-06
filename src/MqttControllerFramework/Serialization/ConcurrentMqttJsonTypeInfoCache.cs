@@ -10,6 +10,7 @@ public sealed class ConcurrentMqttJsonTypeInfoCache : IMqttJsonTypeInfoCache
 {
     private readonly JsonSerializerOptions _options;
 
+    /// <summary>Initializes the cache using the supplied <paramref name="options"/> as the type-info source.</summary>
     public ConcurrentMqttJsonTypeInfoCache(JsonSerializerOptions options)
     {
         _options = options;

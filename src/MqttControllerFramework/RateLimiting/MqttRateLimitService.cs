@@ -11,6 +11,7 @@ public sealed class MqttRateLimitService : IMqttRateLimitService
     private readonly ConcurrentDictionary<string, IRateLimitStrategy> _strategies = new();
     private readonly ConcurrentDictionary<string, IReadOnlyList<RouteRateLimitConfig>> _topicConfigs = new();
 
+    /// <summary>Initializes a new instance of <see cref="MqttRateLimitService"/>.</summary>
     public MqttRateLimitService(ILogger<MqttRateLimitService> logger)
     {
         _logger = logger;

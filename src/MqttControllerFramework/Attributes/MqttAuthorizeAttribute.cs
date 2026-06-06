@@ -7,6 +7,7 @@ namespace MqttControllerFramework.Attributes;
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = true)]
 public sealed class MqttAuthorizeAttribute : Attribute
 {
+    /// <summary>Initializes a new instance with no role or policy constraints.</summary>
     public MqttAuthorizeAttribute() { }
 
     /// <param name="role">Single role that is authorized to access this handler.</param>

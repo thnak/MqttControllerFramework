@@ -9,6 +9,7 @@ public sealed class TokenBucketRateLimitStrategy : IRateLimitStrategy
     private readonly ConcurrentDictionary<string, TokenBucket> _buckets = new();
     private readonly TimeProvider _time;
 
+    /// <summary>Initializes a new instance using the supplied <paramref name="time"/> provider for refill calculations.</summary>
     public TokenBucketRateLimitStrategy(TimeProvider time)
     {
         _time = time;
