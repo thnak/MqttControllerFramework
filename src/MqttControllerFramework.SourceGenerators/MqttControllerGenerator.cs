@@ -561,7 +561,7 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine("using MQTTnet;");
         sb.AppendLine("using MQTTnet.Server;");
         sb.AppendLine("using MqttControllerFramework.Authorization;");
-        sb.AppendLine("using MqttControllerFramework.Middleware;");
+        sb.AppendLine("using MqttControllerFramework.Pipeline;");
         sb.AppendLine("using MqttControllerFramework.Routing;");
         sb.AppendLine();
         sb.AppendLine($"namespace {generatedNs}");
@@ -587,9 +587,11 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine("        }");
         sb.AppendLine();
 
-        // InterceptMessageAsync
-        sb.AppendLine("        public async ValueTask InterceptMessageAsync(InterceptingPublishEventArgs args, IServiceProvider sp)");
+        // RouteAsync — pipeline terminal called by MqttBrokerHostedService after middleware
+        sb.AppendLine("        public async Task RouteAsync(MqttMessageContext context)");
         sb.AppendLine("        {");
+        sb.AppendLine("            var args = context.Args;");
+        sb.AppendLine("            var sp = context.Services;");
         sb.AppendLine("            var topic = args.ApplicationMessage.Topic;");
         sb.AppendLine("            var ct = args.CancellationToken;");
         sb.AppendLine();
@@ -617,10 +619,6 @@ public class MqttControllerGenerator : IIncrementalGenerator
         sb.AppendLine("            args.ProcessPublish = false;");
         sb.AppendLine("            try");
         sb.AppendLine("            {");
-        sb.AppendLine("                // Optional per-request initialization (e.g. tenant resolution)");
-        sb.AppendLine("                var initializer = sp.GetService<IMqttRequestInitializer>();");
-        sb.AppendLine("                if (initializer != null) await initializer.InitializeAsync(args, sp, ct);");
-        sb.AppendLine();
         sb.AppendLine("                switch (routeId)");
         sb.AppendLine("                {");
 

@@ -12,6 +12,7 @@ using MqttControllerFramework.ClientActions;
 using MqttControllerFramework.Configuration;
 using MqttControllerFramework.Connection;
 using MqttControllerFramework.Events;
+using MqttControllerFramework.Pipeline;
 using MqttControllerFramework.RateLimiting;
 using MqttControllerFramework.Routing;
 using MqttControllerFramework.Stats;
@@ -243,9 +244,11 @@ public sealed partial class MqttBrokerHostedService : IHostedService
             return;
         }
 
-        // Authorization
-        await using var authScope = _scopeFactory.CreateAsyncScope();
-        var authz = authScope.ServiceProvider.GetService<IMqttAuthorizationProvider>();
+        // One scope for authorization + middleware + controller dispatch
+        await using var scope = _scopeFactory.CreateAsyncScope();
+
+        // Authorization (global — before middleware runs)
+        var authz = scope.ServiceProvider.GetService<IMqttAuthorizationProvider>();
         if (authz != null)
         {
             var authResult = await authz.AuthorizePublishAsync(
@@ -262,10 +265,11 @@ public sealed partial class MqttBrokerHostedService : IHostedService
             }
         }
 
-        // Dispatch to MQTT controllers
+        // Build context and run middleware → controller pipeline
+        var context = new MqttMessageContext { Args = args, Services = scope.ServiceProvider };
         try
         {
-            await _routing.InterceptMessageAsync(args, authScope.ServiceProvider);
+            await RunPipelineAsync(context);
             args.Response.ReasonCode = MqttPubAckReasonCode.Success;
         }
         catch (Exception ex)
@@ -368,6 +372,24 @@ public sealed partial class MqttBrokerHostedService : IHostedService
         _stats.IncrementQueueOverwriteCount();
         LogQueueOverwritten(args.ReceiverClientId);
         return Task.CompletedTask;
+    }
+
+    // ── Middleware pipeline ───────────────────────────────────────────────
+
+    private Task RunPipelineAsync(MqttMessageContext context)
+    {
+        // Resolve all middleware registered in the per-message scope (registration order = execution order)
+        var middlewares = context.Services.GetServices<IMqttMiddleware>();
+
+        // Terminal step: controller dispatch
+        MqttRequestDelegate terminal = ctx => _routing.RouteAsync(ctx);
+
+        // Build chain right-to-left so first registered runs first
+        var pipeline = middlewares
+            .Reverse()
+            .Aggregate(terminal, static (next, mw) => ctx => mw.InvokeAsync(ctx, next));
+
+        return pipeline(context);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

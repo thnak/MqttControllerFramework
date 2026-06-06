@@ -1,10 +1,11 @@
 using MQTTnet.Server;
+using MqttControllerFramework.Pipeline;
 
 namespace MqttControllerFramework.Routing;
 
 /// <summary>
 ///     Implemented by the source-generated routing service.
-///     Responsible for matching incoming MQTT topics to controller methods and dispatching them.
+///     Matches incoming MQTT topics to controller methods and dispatches them.
 /// </summary>
 public interface IMqttRoutingService
 {
@@ -12,8 +13,15 @@ public interface IMqttRoutingService
     bool IsRouteRegistered(string topic);
 
     /// <summary>
-    ///     Intercepts an incoming publish event, matches the topic, and dispatches
-    ///     to the appropriate controller method.
+    ///     Pipeline terminal — matches the topic and dispatches to the controller.
+    ///     Called by the framework after all middleware have run.
     /// </summary>
-    ValueTask InterceptMessageAsync(InterceptingPublishEventArgs args, IServiceProvider serviceProvider);
+    Task RouteAsync(MqttMessageContext context);
+
+    /// <summary>
+    ///     Legacy dispatch entry-point. Kept for backward compatibility.
+    ///     New generated code overrides <see cref="RouteAsync"/> instead.
+    /// </summary>
+    ValueTask InterceptMessageAsync(InterceptingPublishEventArgs args, IServiceProvider serviceProvider)
+        => ValueTask.CompletedTask;
 }
