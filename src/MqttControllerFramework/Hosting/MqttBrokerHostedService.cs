@@ -36,6 +36,17 @@ public sealed partial class MqttBrokerHostedService : IHostedService
     private readonly MqttServerSettings _settings;
     private readonly ReadOnlyMemory<byte> _systemName;
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="logger"></param>
+    /// <param name="scopeFactory"></param>
+    /// <param name="broker"></param>
+    /// <param name="stats"></param>
+    /// <param name="rateLimit"></param>
+    /// <param name="routing"></param>
+    /// <param name="networkTracker"></param>
+    /// <param name="settings"></param>
     public MqttBrokerHostedService(
         ILogger<MqttBrokerHostedService> logger,
         IServiceScopeFactory scopeFactory,
@@ -57,9 +68,11 @@ public sealed partial class MqttBrokerHostedService : IHostedService
         _systemName = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(_settings.ServerOriginPropertyValue));
         WireEvents();
     }
-
+    
+    /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
+    /// <inheritdoc />
     public async Task StopAsync(CancellationToken stoppingToken)
     {
         await _cts.CancelAsync();
