@@ -4,6 +4,7 @@ using MqttControllerFramework.Authorization;
 using MqttControllerFramework.ClientActions;
 using MqttControllerFramework.Connection;
 using MqttControllerFramework.Events;
+using MqttControllerFramework.Multitenancy;
 using MqttControllerFramework.Pipeline;
 using MqttControllerFramework.RateLimiting;
 using MqttControllerFramework.RetainedMessages;
@@ -142,6 +143,70 @@ public sealed class MqttServerBuilder(IServiceCollection services)
         where TStorage : class, IRetainStorage
     {
         Services.AddSingleton<IRetainStorage, TStorage>();
+        return this;
+    }
+
+    // ── Multi-tenancy ──────────────────────────────────────────────────────
+
+    /// <summary>
+    ///     Registers <typeparamref name="TResolver"/> as the tenant resolver and wires up
+    ///     the built-in multi-tenancy support:
+    ///     <list type="bullet">
+    ///         <item><typeparamref name="TResolver"/> is called after every successful authentication
+    ///               and stores the resolved ID in <c>SessionItems["tenantId"]</c>.</item>
+    ///         <item><see cref="ITenantContext"/> is registered as scoped and populated per-message
+    ///               by the auto-added <see cref="TenantMiddleware"/>.</item>
+    ///         <item>Inject <see cref="ITenantContext"/> into controllers or any scoped service
+    ///               to read <see cref="ITenantContext.TenantId"/>.</item>
+    ///     </list>
+    ///     Call this <em>before</em> other <c>UseMiddleware</c> calls so tenant context
+    ///     is set first in the pipeline.
+    /// </summary>
+    public MqttServerBuilder WithTenantResolver<TResolver>()
+        where TResolver : class, IMqttTenantResolver
+    {
+        Services.AddScoped<IMqttTenantResolver, TResolver>();
+        Services.AddScoped<ITenantContext, TenantContext>();
+        Services.AddScoped<IMqttMiddleware, TenantMiddleware>();
+        return this;
+    }
+
+    /// <summary>
+    ///     Typed overload — registers <typeparamref name="TResolver"/> and wires the full
+    ///     tenant object into a per-message <see cref="ITenantContext{TTenant}"/>.
+    ///     <para>
+    ///         The resolver runs once per TCP connection (after successful authentication)
+    ///         and stores the resolved <typeparamref name="TTenant"/> object in
+    ///         <c>SessionItems[<see cref="MqttTenantConstants.TenantInfoKey"/>]</c>.
+    ///         <see cref="TenantMiddleware{T}"/> then populates
+    ///         <see cref="ITenantContext{T}"/> for every message in that connection's scope.
+    ///     </para>
+    ///     <para>
+    ///         Inject <see cref="ITenantContext{TTenant}"/> into controllers to access
+    ///         <c>Tenant</c>. To integrate with Finbuckle, add a thin bridge middleware:
+    ///     </para>
+    ///     <code>
+    ///     public class FinbuckleBridge(
+    ///         ITenantContext&lt;AppTenantInfo&gt; ctx,
+    ///         IMultiTenantContextSetter setter) : IMqttMiddleware
+    ///     {
+    ///         public Task InvokeAsync(MqttMessageContext msg, MqttRequestDelegate next)
+    ///         {
+    ///             if (ctx.Tenant is { } info)
+    ///                 setter.MultiTenantContext = new MultiTenantContext&lt;AppTenantInfo&gt; { TenantInfo = info };
+    ///             return next(msg);
+    ///         }
+    ///     }
+    ///     </code>
+    /// </summary>
+    public MqttServerBuilder WithTenantResolver<TResolver, TTenant>()
+        where TResolver : class, IMqttTenantResolver<TTenant>
+        where TTenant : class
+    {
+        Services.AddScoped<IMqttTenantResolver<TTenant>, TResolver>();
+        Services.AddScoped<IMqttTenantResolverRunner, MqttTenantResolverRunner<TTenant>>();
+        Services.AddScoped<ITenantContext<TTenant>, TenantContext<TTenant>>();
+        Services.AddScoped<IMqttMiddleware, TenantMiddleware<TTenant>>();
         return this;
     }
 

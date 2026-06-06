@@ -11,6 +11,7 @@ using MqttControllerFramework.Authorization;
 using MqttControllerFramework.Configuration;
 using MqttControllerFramework.Connection;
 using MqttControllerFramework.Events;
+using MqttControllerFramework.Multitenancy;
 using MqttControllerFramework.Pipeline;
 using MqttControllerFramework.RateLimiting;
 using MqttControllerFramework.RetainedMessages;
@@ -142,6 +143,7 @@ public sealed partial class MqttBrokerHostedService : IHostedService
                 // Validator has already verified the client (e.g. by ClientId), skip auth.
                 _networkTracker.TrackClientNetworkActivity(ctx.ClientId, ctx.RemoteEndPoint);
                 await _stats.MqttServerOnValidatingConnectionAsync(ctx);
+                await ResolveTenantAsync(validatorScope.ServiceProvider, ctx);
                 ctx.ReasonCode = MqttConnectReasonCode.Success;
                 return;
             }
@@ -165,7 +167,26 @@ public sealed partial class MqttBrokerHostedService : IHostedService
 
         _networkTracker.TrackClientNetworkActivity(ctx.ClientId, ctx.RemoteEndPoint);
         await _stats.MqttServerOnValidatingConnectionAsync(ctx);
+        await ResolveTenantAsync(authScope.ServiceProvider, ctx);
         ctx.ReasonCode = MqttConnectReasonCode.Success;
+    }
+
+    private static async Task ResolveTenantAsync(IServiceProvider services, ValidatingConnectionEventArgs ctx)
+    {
+        // String-based path
+        var resolver = services.GetService<IMqttTenantResolver>();
+        if (resolver != null)
+        {
+            var tenantId = await resolver.ResolveAsync(ctx.UserName, ctx.ClientId, CancellationToken.None);
+            if (tenantId != null)
+                ctx.SessionItems[MqttTenantConstants.SessionItemKey] = tenantId;
+            return;
+        }
+
+        // Typed path — runner erases the generic T so this method stays non-generic
+        var runner = services.GetService<IMqttTenantResolverRunner>();
+        if (runner != null)
+            await runner.RunAsync(ctx, CancellationToken.None);
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
