@@ -1,5 +1,8 @@
 {
   "sdk": {
     "rollForward": "latestMinor"
+  },
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
   }
 }
