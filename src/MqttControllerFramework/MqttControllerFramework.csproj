@@ -2,9 +2,9 @@
 
     <PropertyGroup>
         <PackageId>MqttControllerFramework</PackageId>
-        <Version>1.0.0</Version>
-        <AssemblyVersion>1.0.0</AssemblyVersion>
-        <FileVersion>1.0.0</FileVersion>
+        <Version>1.0.1</Version>
+        <AssemblyVersion>1.0.1</AssemblyVersion>
+        <FileVersion>1.0.1</FileVersion>
         <Authors>IoT Viet Solution</Authors>
         <Description>Source-generated MQTT controller framework for .NET — attribute-driven routing, middleware pipeline, rate limiting, and authorization over MQTTnet.</Description>
         <PackageTags>mqtt mqttnet aspnetcore controller routing middleware iot</PackageTags>
