@@ -27,6 +27,9 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Restore
+        run: dotnet restore MqttControllerFramework.slnx
+
       - name: Build source generator (Release)
         run: dotnet build src/MqttControllerFramework.SourceGenerators/MqttControllerFramework.SourceGenerators.csproj -c Release -v q
 
