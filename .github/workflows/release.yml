@@ -45,6 +45,7 @@ jobs:
             -o ./artifacts
 
       - name: Push to NuGet.org
+        continue-on-error: true
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --api-key ${{ secrets.NUGET_API_KEY }} \
